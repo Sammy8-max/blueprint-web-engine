@@ -36,7 +36,7 @@ if st.button("GENERATE DATA FOR SPREADSHEET PASTE"):
             df = df.dropna(subset=['WINS', 'DRAWS', 'LOSSES']).reset_index(drop=True)
             output_rows = []
 
-            # 2. PROCESS IN 3-ROW BLOCKS (To match your bordered table)
+            # 2. PROCESS IN 3-ROW BLOCKS
             for i in range(0, len(df), 2):
                 if i + 1 >= len(df): break
                 
@@ -51,21 +51,28 @@ if st.button("GENERATE DATA FOR SPREADSHEET PASTE"):
                 mp_total = w_pool + d_pool + l_pool
                 
                 f_p, x_p, d_p = (w_pool/mp_total), (d_pool/mp_total), (l_pool/mp_total)
+                
+                # NEW: Calculate Diff - p[cite: 1]
+                diff_p = h['Points'] - a['Points']
 
                 # ROW 1 (HOME)[cite: 1]
+                h['Strength Fav'], h['Strength Dog'] = fav_s, dog_s
                 h['MP'] = (h['WINS'] + h['DRAWS'] + h['LOSSES'])
+                h['Diff - p'] = diff_p
                 h['Implied % Fav'], h['Implied % X'], h['Implied % dog'] = f"{f_p:.2%}", f"{x_p:.2%}", f"{d_p:.2%}"
                 
                 # ROW 2 (AWAY)[cite: 1]
-                a['Home Team'] = "" # Blank to match your image style
+                a['Home Team'] = "" 
+                a['Strength Fav'], a['Strength Dog'] = fav_s, dog_s # Duplicated as requested
                 a['MP'] = (a['WINS'] + a['DRAWS'] + a['LOSSES'])
+                a['Diff - p'] = "" # Kept blank for away row
                 a['Implied % Fav'], a['Implied % X'], a['Implied % dog'] = f"{f_p:.2%}", f"{x_p:.2%}", f"{d_p:.2%}"
 
                 # ROW 3 (SUMMARY ROW)[cite: 1]
                 summary = pd.Series(index=df.columns, dtype=object)
                 summary['Home Team'] = ""
                 summary['Match'] = ""
-                summary['Strength Fav'], summary['Strength Dog'] = fav_s, dog_s
+                summary['Strength Fav'], summary['Strength Dog'] = fav_s, dog_s # Duplicated as requested
                 summary['MP'] = mp_total
                 summary['Implied % Fav'], summary['Implied % X'], summary['Implied % dog'] = f"{f_p:.2%}", f"{x_p:.2%}", f"{d_p:.2%}"
 
@@ -76,8 +83,8 @@ if st.button("GENERATE DATA FOR SPREADSHEET PASTE"):
             # 3. PREPARE TAB-SEPARATED OUTPUT[cite: 1]
             tsv_data = final_df.to_csv(sep='\t', index=False)
             
-            st.success("✅ Calculations Complete! 3-Row structure ready.")
-            st.write("### 📋 Click the copy icon and paste into Google Sheets (Cell A1):")
+            st.success("✅ Calculations Updated! Strength duplicated and Diff-p added.")
+            st.write("### 📋 Copy the data below and paste into Cell A1 of your Spreadsheet:")
             st.code(tsv_data, language="text")
 
         except Exception as e:

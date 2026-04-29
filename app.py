@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
-from io import StringIO, BytesIO
-import xlsxwriter
+from io import StringIO
 
 # --- WEB CONFIG ---
 st.set_page_config(page_title="Blueprint Web Engine", layout="wide")
@@ -22,12 +21,12 @@ st.subheader("Hello User. I hope you are having a superb day!")
 # Paste Area
 raw_input = st.text_area("Paste your match data table here:", height=300)
 
-if st.button("GENERATE & PREPARE FOR PASTE"):
+if st.button("GENERATE DATA FOR SPREADSHEET PASTE"):
     if not raw_input.strip():
         st.warning("No data detected.")
     else:
         try:
-            # 1. THE ENGINE (Calculations)[cite: 1]
+            # 1. READ & CLEAN DATA
             df = pd.read_csv(StringIO(raw_input), sep=None, engine='python')
             stat_cols = ['WINS', 'DRAWS', 'LOSSES', 'Points', 'GSCORED', 'G CONCEDED']
             for col in stat_cols:
@@ -37,42 +36,49 @@ if st.button("GENERATE & PREPARE FOR PASTE"):
             df = df.dropna(subset=['WINS', 'DRAWS', 'LOSSES']).reset_index(drop=True)
             output_rows = []
 
+            # 2. PROCESS IN 3-ROW BLOCKS (To match your bordered table)
             for i in range(0, len(df), 2):
                 if i + 1 >= len(df): break
-                h, a = df.iloc[i].copy(), df.iloc[i+1].copy()
+                
+                h = df.iloc[i].copy()
+                a = df.iloc[i+1].copy()
 
-                # Math Calculations[cite: 1]
+                # Shared Calculation Logic[cite: 1]
                 fav_s, dog_s = h.get('Strength Fav'), h.get('Strength Dog')
-                w_pool, d_pool = h['WINS'] + a['LOSSES'], h['DRAWS'] + a['DRAWS']
+                w_pool = h['WINS'] + a['LOSSES']
+                d_pool = h['DRAWS'] + a['DRAWS']
                 l_pool = h['LOSSES'] + a['WINS']
                 mp_total = w_pool + d_pool + l_pool
                 
                 f_p, x_p, d_p = (w_pool/mp_total), (d_pool/mp_total), (l_pool/mp_total)
-                eg_fav = (h['GSCORED'] + a['G CONCEDED']) / mp_total
-                eg_dog = (a['GSCORED'] + h['G CONCEDED']) / mp_total
 
-                # Formatting for the Clipboard
-                h['Strength Fav'], h['Strength Dog'] = fav_s, dog_s
+                # ROW 1 (HOME)[cite: 1]
+                h['MP'] = (h['WINS'] + h['DRAWS'] + h['LOSSES'])
                 h['Implied % Fav'], h['Implied % X'], h['Implied % dog'] = f"{f_p:.2%}", f"{x_p:.2%}", f"{d_p:.2%}"
-                h['Exp goals Fav'], h['Exp goals dog'] = round(eg_fav, 2), round(eg_dog, 2)
                 
-                a['Home Team'] = ""
+                # ROW 2 (AWAY)[cite: 1]
+                a['Home Team'] = "" # Blank to match your image style
+                a['MP'] = (a['WINS'] + a['DRAWS'] + a['LOSSES'])
                 a['Implied % Fav'], a['Implied % X'], a['Implied % dog'] = f"{f_p:.2%}", f"{x_p:.2%}", f"{d_p:.2%}"
-                
-                output_rows.extend([h, a, pd.Series(dtype=object)]) # Add a blank line between matches
+
+                # ROW 3 (SUMMARY ROW)[cite: 1]
+                summary = pd.Series(index=df.columns, dtype=object)
+                summary['Home Team'] = ""
+                summary['Match'] = ""
+                summary['Strength Fav'], summary['Strength Dog'] = fav_s, dog_s
+                summary['MP'] = mp_total
+                summary['Implied % Fav'], summary['Implied % X'], summary['Implied % dog'] = f"{f_p:.2%}", f"{x_p:.2%}", f"{d_p:.2%}"
+
+                output_rows.extend([h, a, summary])
 
             final_df = pd.DataFrame(output_rows)
 
-            # 2. CONVERT TO TAB-SEPARATED FOR SPREADSHEETS
+            # 3. PREPARE TAB-SEPARATED OUTPUT[cite: 1]
             tsv_data = final_df.to_csv(sep='\t', index=False)
             
-            # 3. DISPLAY RESULTS & COPY ICON
-            st.success("✅ Calculations Complete!")
-            
-            st.write("### 📋 Copy the data below and paste directly into Excel:")
-            st.code(tsv_data, language="text") 
-            
-            # This "st.code" block has a built-in copy button in the top right corner!
+            st.success("✅ Calculations Complete! 3-Row structure ready.")
+            st.write("### 📋 Click the copy icon and paste into Google Sheets (Cell A1):")
+            st.code(tsv_data, language="text")
 
         except Exception as e:
             st.error(f"Processing failed: {e}")

@@ -12,13 +12,26 @@ st.markdown("""
         border: 10px solid;
         border-image: linear-gradient(to right, red, orange, yellow, green, blue, indigo, violet) 1;
     }
+    /* Style for the Bordered Preview Table */
+    table {
+        border-collapse: collapse;
+        width: 100%;
+        color: #333;
+    }
+    th, td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: center;
+    }
+    th {
+        background-color: #f2f2f2;
+    }
     </style>
     """, unsafe_allow_html=True)
 
 st.title("🚀 Blueprint Data Engine - Web Pro")
 st.subheader("Hello User. I hope you are having a superb day!")
 
-# Paste Area
 raw_input = st.text_area("Paste your match data table here:", height=300)
 
 if st.button("GENERATE DATA FOR SPREADSHEET PASTE"):
@@ -43,21 +56,16 @@ if st.button("GENERATE DATA FOR SPREADSHEET PASTE"):
                 h = df.iloc[i].copy()
                 a = df.iloc[i+1].copy()
 
-                # Shared Calculation Logic[cite: 1]
+                # Shared Calculation Logic
                 fav_s, dog_s = h.get('Strength Fav'), h.get('Strength Dog')
                 w_pool = h['WINS'] + a['LOSSES']
                 d_pool = h['DRAWS'] + a['DRAWS']
                 l_pool = h['LOSSES'] + a['WINS']
                 mp_total = w_pool + d_pool + l_pool
                 
-                # Probability Calcs[cite: 1]
                 f_p, x_p, d_p = (w_pool/mp_total), (d_pool/mp_total), (l_pool/mp_total)
-                
-                # Expected Goals Calcs[cite: 1]
                 eg_fav = (h['GSCORED'] + a['G CONCEDED']) / mp_total
                 eg_dog = (a['GSCORED'] + h['G CONCEDED']) / mp_total
-                
-                # Diff - p Calc[cite: 1]
                 diff_p = h['Points'] - a['Points']
 
                 # ROW 1 (HOME)[cite: 1]
@@ -86,13 +94,20 @@ if st.button("GENERATE DATA FOR SPREADSHEET PASTE"):
 
                 output_rows.extend([h, a, summary])
 
-            final_df = pd.DataFrame(output_rows)
+            final_df = pd.DataFrame(output_rows).fillna("") # Removes all NaN for a neat look[cite: 1]
 
-            # 3. PREPARE TAB-SEPARATED OUTPUT[cite: 1]
-            tsv_data = final_df.to_csv(sep='\t', index=False)
+            # 3. DISPLAY & OUTPUT[cite: 1]
+            st.success("✅ Calculations Complete!")
             
-            st.success("✅ Calculations Complete! Exp Goals, Strength, and Diff-p all synced.")
-            st.write("### 📋 Copy the data and paste into Google Sheets (Cell A1):")
+            # THE VISUAL BORDERED PREVIEW[cite: 1]
+            st.write("### 🖼️ Visual Preview (What your table looks like):")
+            st.table(final_df) # This creates a neat, bordered table in the browser[cite: 1]
+            
+            st.write("---")
+            
+            # THE COPY BOX[cite: 1]
+            st.write("### 📋 Copy the data below to paste into Excel (Cell A1):")
+            tsv_data = final_df.to_csv(sep='\t', index=False)
             st.code(tsv_data, language="text")
 
         except Exception as e:

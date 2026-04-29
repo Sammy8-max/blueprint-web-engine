@@ -50,9 +50,14 @@ if st.button("GENERATE DATA FOR SPREADSHEET PASTE"):
                 l_pool = h['LOSSES'] + a['WINS']
                 mp_total = w_pool + d_pool + l_pool
                 
+                # Probability Calcs[cite: 1]
                 f_p, x_p, d_p = (w_pool/mp_total), (d_pool/mp_total), (l_pool/mp_total)
                 
-                # NEW: Calculate Diff - p[cite: 1]
+                # Expected Goals Calcs[cite: 1]
+                eg_fav = (h['GSCORED'] + a['G CONCEDED']) / mp_total
+                eg_dog = (a['GSCORED'] + h['G CONCEDED']) / mp_total
+                
+                # Diff - p Calc[cite: 1]
                 diff_p = h['Points'] - a['Points']
 
                 # ROW 1 (HOME)[cite: 1]
@@ -60,21 +65,24 @@ if st.button("GENERATE DATA FOR SPREADSHEET PASTE"):
                 h['MP'] = (h['WINS'] + h['DRAWS'] + h['LOSSES'])
                 h['Diff - p'] = diff_p
                 h['Implied % Fav'], h['Implied % X'], h['Implied % dog'] = f"{f_p:.2%}", f"{x_p:.2%}", f"{d_p:.2%}"
+                h['Exp goals Fav'], h['Exp goals dog'] = round(eg_fav, 2), round(eg_dog, 2)
                 
                 # ROW 2 (AWAY)[cite: 1]
                 a['Home Team'] = "" 
-                a['Strength Fav'], a['Strength Dog'] = fav_s, dog_s # Duplicated as requested
+                a['Strength Fav'], a['Strength Dog'] = fav_s, dog_s
                 a['MP'] = (a['WINS'] + a['DRAWS'] + a['LOSSES'])
-                a['Diff - p'] = "" # Kept blank for away row
+                a['Diff - p'] = "" 
                 a['Implied % Fav'], a['Implied % X'], a['Implied % dog'] = f"{f_p:.2%}", f"{x_p:.2%}", f"{d_p:.2%}"
+                a['Exp goals Fav'], a['Exp goals dog'] = "", ""
 
                 # ROW 3 (SUMMARY ROW)[cite: 1]
                 summary = pd.Series(index=df.columns, dtype=object)
                 summary['Home Team'] = ""
                 summary['Match'] = ""
-                summary['Strength Fav'], summary['Strength Dog'] = fav_s, dog_s # Duplicated as requested
+                summary['Strength Fav'], summary['Strength Dog'] = fav_s, dog_s
                 summary['MP'] = mp_total
                 summary['Implied % Fav'], summary['Implied % X'], summary['Implied % dog'] = f"{f_p:.2%}", f"{x_p:.2%}", f"{d_p:.2%}"
+                summary['Exp goals Fav'], summary['Exp goals dog'] = "", ""
 
                 output_rows.extend([h, a, summary])
 
@@ -83,8 +91,8 @@ if st.button("GENERATE DATA FOR SPREADSHEET PASTE"):
             # 3. PREPARE TAB-SEPARATED OUTPUT[cite: 1]
             tsv_data = final_df.to_csv(sep='\t', index=False)
             
-            st.success("✅ Calculations Updated! Strength duplicated and Diff-p added.")
-            st.write("### 📋 Copy the data below and paste into Cell A1 of your Spreadsheet:")
+            st.success("✅ Calculations Complete! Exp Goals, Strength, and Diff-p all synced.")
+            st.write("### 📋 Copy the data and paste into Google Sheets (Cell A1):")
             st.code(tsv_data, language="text")
 
         except Exception as e:
